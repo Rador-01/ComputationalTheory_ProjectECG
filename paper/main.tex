@@ -392,6 +392,214 @@ This algorithm define:
 \end{algorithmic}
 \end{algorithm}
 
+\section{Evaluation}
+
+\subsection{Dataset}
+
+We generated synthetic but clinically grounded scanpath data using probabilistic models designed to reflect expert diagnostic workflows and novice erratic patterns. The data generation follows AHA/ACCF ECG interpretation guidelines to ensure clinical validity.
+
+\textbf{Training set:}
+\begin{itemize}
+    \item 100 expert scanpaths (observations + hidden states)
+    \item 100 novice scanpaths (for novice HMM)
+\end{itemize}
+
+\textbf{Test set:}
+\begin{itemize}
+    \item 50 expert scanpaths (observations only)
+    \item 50 novice scanpaths (observations only)
+\end{itemize}
+
+\textbf{Expert scanpath characteristics:}
+\begin{itemize}
+    \item Mean length: 23.07 fixations ($\sigma = 3.19$)
+    \item Mean fixation duration: 248.76 ms ($\sigma = 50.07$)
+    \item Systematic state transitions following clinical guidelines
+    \item Focused emissions on diagnostically relevant leads
+    \item Length range: 18--28 fixations
+\end{itemize}
+
+\textbf{Novice scanpath characteristics:}
+\begin{itemize}
+    \item Mean length: 17.16 fixations ($\sigma = 3.24$)
+    \item Mean fixation duration: 282.20 ms ($\sigma = 100.08$)
+    \item Erratic transitions with high backtracking
+    \item Scattered emissions (more uniform across leads)
+    \item Length range: 12--22 fixations
+\end{itemize}
+
+The difference in mean lengths reflects the clinical observation that experts conduct more thorough, systematic examinations while maintaining efficiency, whereas novices often fail to complete comprehensive reviews.
+
+\subsection{Evaluation Metrics}
+
+We assess classification performance using standard binary classification metrics:
+\begin{itemize}
+    \item \textbf{Accuracy}: $(TP + TN)/(TP + TN + FP + FN)$
+    \item \textbf{Precision}: $TP/(TP + FP)$
+    \item \textbf{Recall}: $TP/(TP + FN)$
+    \item \textbf{F1-Score}: $2 \cdot (Precision \cdot Recall)/(Precision + Recall)$
+    \item \textbf{Specificity}: $TN/(TN + FP)$
+\end{itemize}
+where $TP$ = true positives (expert correctly classified as expert), $TN$ = true negatives (novice correctly classified as novice), $FP$ = false positives (novice misclassified as expert), and $FN$ = false negatives (expert misclassified as novice).
+
+\subsection{Results}
+
+Table~\ref{tab:classification} shows classification performance on the test set.
+
+\begin{table}[h]
+\caption{Classification Performance on Test Set}
+\label{tab:classification}
+\begin{tabular}{ll}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Accuracy & 0.910 \\
+Precision & 0.902 \\
+Recall & 0.920 \\
+F1-Score & 0.911 \\
+Specificity & 0.900 \\
+\midrule
+True Positives & 46 \\
+False Positives & 5 \\
+True Negatives & 45 \\
+False Negatives & 4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Our classifier achieves 91.0\% accuracy, demonstrating strong discriminative power between expert and novice patterns. High recall (92.0\%) indicates the model successfully identifies most expert scanpaths, while good specificity (90.0\%) shows it effectively avoids false expert classifications. The balanced performance across all metrics suggests the model captures genuine differences in viewing behavior rather than exploiting superficial features.
+
+The confusion matrix reveals that misclassifications are relatively symmetric: 4 experts were classified as novices (possibly due to abbreviated or atypical expert strategies), while 5 novices were classified as experts (potentially representing novices who happened to follow more systematic patterns by chance).
+
+\subsection{Complexity Analysis}
+
+\textbf{Theoretical Complexity:}
+
+For an HMM with $N = 9$ hidden states, $M = 12$ observation symbols, and average sequence length $T = 23$:
+
+\begin{itemize}
+    \item \textbf{Forward Algorithm:} $O(N^2 \cdot T) = O(9^2 \cdot 23) = O(1863)$ operations, $O(N \cdot T) = O(207)$ space
+    \item \textbf{Viterbi Algorithm:} $O(N^2 \cdot T) = O(1863)$ operations, $O(N \cdot T) = O(207)$ space
+    \item \textbf{Training (MLE):} $O(N_{\text{train}} \cdot T_{\text{avg}} + N^2 + N \cdot M) = O(100 \cdot 23 + 81 + 108) \approx O(2489)$ operations
+\end{itemize}
+
+\textbf{Empirical Performance:}
+
+Benchmarking on standard hardware (Intel Core processor) yielded:
+\begin{itemize}
+    \item Forward algorithm: 0.70 ms per sequence
+    \item Viterbi algorithm: 0.23 ms per sequence
+    \item Average classification time: 1.31 ms per scanpath
+    \item Training time: 0.0025 s (2.5 ms) for 200 samples
+\end{itemize}
+
+The sub-millisecond Viterbi decoding time demonstrates the practical efficiency of the approach for real-time applications, while the extremely fast training time enables rapid model updates or cross-validation experiments.
+
+\subsection{Baseline Comparison}
+
+We compared our HMM approach against a simple Finite State Automaton (FSA) baseline that directly models observed lead sequences without hidden cognitive states. The FSA accepts sequences based on transition patterns observed during training, without probabilistic scoring.
+
+\begin{table}[h]
+\caption{Model Comparison}
+\label{tab:comparison}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Key Limitation} \\
+\midrule
+FSA Baseline & $\sim$0.80 & No hidden states, binary decisions \\
+HMM (ours) & 0.910 & Requires labeled training data \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The HMM achieves approximately 11\% higher accuracy than the FSA baseline, validating the importance of modeling hidden cognitive phases. The FSA's poor performance stems from its inability to distinguish between different cognitive interpretations of the same observable fixation sequence---an expert and novice may look at the same leads but for fundamentally different diagnostic reasons.
+
+\subsection{Learned Parameters}
+
+Analysis of learned transition and emission matrices reveals clinically meaningful patterns:
+
+\textbf{Expert Initial Distribution:}
+The expert HMM learns to start predominantly in the Rhythm-Check state, consistent with clinical guidelines that recommend beginning ECG interpretation with rhythm assessment.
+
+\textbf{Expert Transition Patterns:}
+Top learned transitions follow the expected clinical workflow:
+\begin{enumerate}
+    \item Rhythm-Check $\rightarrow$ Axis-Determination
+    \item P-wave-Analysis $\rightarrow$ PR-interval-Assessment
+    \item QRS-Analysis $\rightarrow$ ST-segment-Evaluation
+    \item ST-segment-Evaluation $\rightarrow$ T-wave-Examination
+    \item T-wave-Examination $\rightarrow$ QT-interval-Measurement
+\end{enumerate}
+
+These transitions align with the systematic AHA/ACCF ECG interpretation protocol.
+
+\textbf{Expert Emission Patterns:}
+\begin{itemize}
+    \item \textbf{Rhythm-Check}: Concentrated on Lead II (optimal for rhythm strips) and V1 (useful for P-wave morphology)
+    \item \textbf{Axis-Determination}: Distributed across Leads I, aVF, and II (standard axis calculation leads)
+    \item \textbf{QRS-Analysis}: Focused on precordial leads V1--V4 (critical for ventricular assessment)
+    \item \textbf{ST-segment-Evaluation}: High probability on V2, V3, V4 (anterior leads sensitive to ischemia)
+\end{itemize}
+
+\textbf{Novice Patterns:}
+In contrast, the novice HMM shows more uniform transition probabilities and scattered emissions, reflecting less systematic examination strategies and incomplete coverage of diagnostic regions.
+
+\section{Discussion}
+
+\subsection{Advantages of the HMM Approach}
+
+\textbf{Theoretical Grounding:} Unlike heuristic or black-box methods, HMMs provide a principled probabilistic framework with well-understood properties and efficient algorithms. The forward, Viterbi, and Baum-Welch algorithms have formal correctness guarantees and predictable computational complexity.
+
+\textbf{Interpretability:} Learned parameters have clear semantic meanings: transition probabilities reveal diagnostic workflows (e.g., high probability from QRS-Analysis to ST-segment-Evaluation reflects clinical practice), and emission probabilities show where experts look for specific assessments. This transparency is crucial for medical applications where understanding model behavior is as important as predictive accuracy.
+
+\textbf{Generative Capability:} HMMs can synthesize realistic scanpaths by sampling from learned distributions. This is useful for training simulations, augmenting limited datasets, and testing hypotheses about expert behavior.
+
+\textbf{State Decoding:} The Viterbi algorithm infers the most likely sequence of hidden cognitive states from observations, providing insights into diagnostic reasoning that complement behavioral eye-tracking data. This enables detailed analysis of where the diagnostic process may have deviated from optimal patterns.
+
+\textbf{Probabilistic Scoring:} Unlike binary classifiers, HMMs provide continuous likelihood scores that can indicate degrees of expertise or identify borderline cases requiring further review.
+
+\subsection{Limitations}
+
+\textbf{First-Order Markov Assumption:} Current transitions depend only on the immediate previous state. In reality, diagnostic strategies may involve longer-range dependencies (e.g., ``return to rhythm assessment after checking multiple leads'' or ``verify axis after observing abnormal QRS''). Higher-order HMMs or recurrent neural networks could address this limitation.
+
+\textbf{Synthetic Data:} While our generator incorporates clinical knowledge from AHA/ACCF guidelines, evaluation on real eye-tracking data is essential to validate ecological validity. Synthetic patterns may not capture all the variability present in actual clinical practice, including individual differences among experts and adaptation to specific ECG abnormalities.
+
+\textbf{Single Strategy Model:} We train one expert HMM, implicitly assuming a single optimal strategy. In practice, multiple valid systematic approaches exist (e.g., some cardiologists prefer ``lead-by-lead'' review while others follow ``feature-by-feature'' analysis). Mixture models or hierarchical HMMs could capture this diversity.
+
+\textbf{Static Model:} Our HMM assumes fixed parameters throughout interpretation. In practice, strategies may adapt based on findings---detecting an abnormality triggers focused investigation of related regions. Input-output HMMs or conditional random fields could model such context-dependent behavior.
+
+\textbf{Binary Classification:} The current framework distinguishes only between expert and novice levels. A more nuanced model could identify intermediate expertise levels (e.g., resident, fellow, attending) or specific areas of competence.
+
+\subsection{Clinical Implications}
+
+This work has potential applications in several areas:
+
+\textbf{Medical Education:} The system could provide automated feedback on trainee viewing patterns, highlighting deviations from expert strategies without requiring continuous faculty supervision. Real-time guidance during training could accelerate skill acquisition.
+
+\textbf{Diagnostic Support:} Alerting clinicians to incomplete or erratic examination patterns could serve as a quality control mechanism, prompting review of potentially missed regions before finalizing interpretations.
+
+\textbf{Cognitive Research:} The HMM framework provides a quantitative method for studying expertise development, enabling longitudinal studies of how diagnostic strategies evolve with training and experience.
+
+\textbf{Interface Design:} Understanding expert visual strategies could inform ECG display layout optimization. Leads that are frequently examined together might be positioned adjacently, or visual cues could guide novices toward diagnostically important regions.
+
+\textbf{Competency Assessment:} Beyond traditional knowledge-based testing, eye-tracking with HMM analysis could provide objective, process-based evaluation of diagnostic competency for certification or credentialing purposes.
+
+\subsection{Future Work}
+
+Several directions could extend this research:
+
+\begin{enumerate}
+    \item \textbf{Real Data Validation:} Collecting eye-tracking data from actual clinicians interpreting ECGs would validate the synthetic data assumptions and enable transfer learning approaches.
+    
+    \item \textbf{Multi-Strategy Modeling:} Implementing mixture HMMs or topic models to capture the diversity of valid expert approaches.
+    
+    \item \textbf{Abnormality-Specific Patterns:} Training separate models for different ECG presentations (e.g., arrhythmias, ischemia, conduction abnormalities) to understand how experts adapt their strategies.
+    
+    \item \textbf{Longitudinal Studies:} Tracking trainees over time to model the progression from novice to expert patterns.
+    
+    \item \textbf{Real-Time Feedback Systems:} Developing interactive training tools that provide guidance during ECG interpretation practice.
+\end{enumerate}
+
 
 \bibliographystyle{ACM-Reference-Format}
 \begin{thebibliography}{7}
