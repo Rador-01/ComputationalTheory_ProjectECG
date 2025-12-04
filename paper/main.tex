@@ -16,7 +16,6 @@
 
 \title{Scanpath Pattern Recognition for ECG Interpretation Using Hidden Markov Models}
 
-\maketitle
 
 \author{Riad Benbrahim}
 \email{riad.benbrahim@um6p.ma}
@@ -55,7 +54,7 @@ The proposed model successfully distinguished expert scanpaths from novice patte
 
 \keywords{Hidden Markov Models, Scanpath Analysis, Eye-tracking, ECG Interpretation, Medical Expertise, Pattern Recognition, Computational Theory}
 
-
+\maketitle
 
 \section{Introduction}
 
@@ -158,22 +157,6 @@ P = I\ II\ III\ aVR\ aVL\ aVF\ V1\ V2\ V3\ V4\ V5\ V6
 \end{equation}
 
 This representation helps directly link each fixation to the clinician's underlying diagnostic strategy, allowing the HMM to capture how visual transitions across ECG leads reflect the real cognitive sequence followed during interpretation.
-
-\subsection{Model assumptions}
-
-Hidden Markov Models rely on two simplifying assumptions.
-\begin{itemize}
-    \item \textbf{the Markov property :}  
-    
-    The probability of shifting to the next ECG lead depends solely on the current diagnostic phase. Once the present phase is known, past phases no longer influence what comes next.
-\end{itemize} 
-
-
-\begin{itemize}
-    \item \textbf{observation-independence assumption :}  
-    
-     Each observation is determined solely by the hidden state at that instant, independent of all past or future states or observations. This constraint keeps the model manageable and supports efficient inference.
-\end{itemize}
 
 \subsection{Classification Framework}
 
