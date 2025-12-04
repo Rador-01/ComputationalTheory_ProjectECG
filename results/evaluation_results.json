@@ -1,0 +1,95 @@
+{
+  "timestamp": "2025-12-04T11:29:25.360447",
+  "configuration": {
+    "n_train_per_class": 100,
+    "n_test_per_class": 50,
+    "seed": 42,
+    "n_hidden_states": 9,
+    "n_observations": 12
+  },
+  "classification_metrics": {
+    "accuracy": 0.91,
+    "precision": 0.9019607843137255,
+    "recall": 0.92,
+    "f1_score": 0.9108910891089109,
+    "specificity": 0.9,
+    "true_positives": 46,
+    "false_positives": 5,
+    "true_negatives": 45,
+    "false_negatives": 4
+  },
+  "confusion_matrix": [
+    [
+      46,
+      4
+    ],
+    [
+      5,
+      45
+    ]
+  ],
+  "timing": {
+    "data_generation_s": 0.08537864685058594,
+    "training_s": 0.0024979114532470703,
+    "evaluation_s": 0.13101530075073242,
+    "avg_classification_ms": 1.3101530075073242
+  },
+  "complexity": {
+    "theoretical": {
+      "forward_time": "O(N\u00b2 \u00b7 T) = O(9\u00b2 \u00b7 23) = O(1863)",
+      "forward_space": "O(N \u00b7 T) = O(9 \u00b7 23) = O(207)",
+      "viterbi_time": "O(N\u00b2 \u00b7 T) = O(9\u00b2 \u00b7 23) = O(1863)",
+      "viterbi_space": "O(N \u00b7 T) = O(9 \u00b7 23) = O(207)",
+      "training_time": "O(N_train \u00b7 T_avg + N\u00b2 + N \u00b7 M) = O(N_train \u00b7 T_avg + 9\u00b2 + 9 \u00b7 12)"
+    },
+    "empirical": {
+      "forward_ms_per_sequence": 0.6998941898345947,
+      "viterbi_ms_per_sequence": 0.22735285758972168,
+      "avg_sequence_length": 22.35
+    }
+  },
+  "dataset_statistics": {
+    "training": {
+      "total_samples": 200,
+      "expert": {
+        "count": 100,
+        "mean_length": 23.07,
+        "std_length": 3.1851373596754033,
+        "min_length": 18,
+        "max_length": 28,
+        "mean_duration": 248.76376246207195,
+        "std_duration": 50.06973139501266
+      },
+      "novice": {
+        "count": 100,
+        "mean_length": 17.16,
+        "std_length": 3.2364177727852135,
+        "min_length": 12,
+        "max_length": 22,
+        "mean_duration": 282.19638694638695,
+        "std_duration": 100.07712299215243
+      }
+    },
+    "test": {
+      "total_samples": 100,
+      "expert": {
+        "count": 50,
+        "mean_length": 22.28,
+        "std_length": 2.7132268611378594,
+        "min_length": 18,
+        "max_length": 28,
+        "mean_duration": 251.3141831238779,
+        "std_duration": 49.98764691123498
+      },
+      "novice": {
+        "count": 50,
+        "mean_length": 17.1,
+        "std_length": 3.263433774416144,
+        "min_length": 12,
+        "max_length": 22,
+        "mean_duration": 273.15555555555557,
+        "std_duration": 99.1055808385498
+      }
+    }
+  }
+}

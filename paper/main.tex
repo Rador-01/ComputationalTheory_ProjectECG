@@ -1,0 +1,408 @@
+\documentclass[sigconf]{acmart}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+
+\setcopyright{none}
+\acmConference[Conference'17]{ACM Conference}{July 2017}{Washington, DC, USA}
+\acmYear{2025}
+\acmISBN{978-x-xxxx-xxxx-x/YYYY/MM}
+\acmDOI{10.1145/nnnnnnn.nnnnnnn}
+
+\begin{document}
+
+\title{Scanpath Pattern Recognition for ECG Interpretation Using Hidden Markov Models}
+
+\maketitle
+
+\author{Riad Benbrahim}
+\email{riad.benbrahim@um6p.ma}
+\affiliation{%
+  \institution{Mohammed VI Polytechnic University}
+  \city{Rabat}
+  \country{Morocco}
+}
+
+\author{Mohamed Amine El Bacha}
+\email{mohamedamine.elbacha@um6p.ma}
+\affiliation{%
+  \institution{Mohammed VI Polytechnic University}
+  \city{Rabat}
+  \country{Morocco}
+}
+
+\author{Youssef Kaya}
+\email{youssef.kaya@um6p.ma}
+\affiliation{%
+  \institution{Mohammed VI Polytechnic University}
+  \city{Rabat}
+  \country{Morocco}
+}
+
+
+\begin{abstract}
+The visual behavior of individuals—particularly their scanpaths when inspecting images—encodes essential information about their cognitive state, interests, attitudes, and even underlying health conditions. Analyzing these patterns has significant implications across multiple domains, especially in clinical settings where scanpath dynamics during ECG interpretation can reveal expertise-related differences. Leveraging computational models to characterize these gaze patterns enables the extraction of additional subject-specific features from ECG readings and supports the automatic discrimination between expert and novice clinicians.
+
+In clinical practice, a scanpath  is represented as an ordered sequence of gaze fixations across distinct ECG regions. This sequence is converted into a symbolic string suitable for computational analysis. Under a Hidden Markov Model (HMM) framework, the hidden states correspond to the clinician's underlying cognitive processes, whereas the observable states represent the ECG segments being fixated. By learning the probabilistic relationships between these components, the model infers the most likely sequence of cognitive steps traversed during the interpretation process based on the recorded scanpath.
+
+The evaluation relies on scanpath datasets obtained during ECG interpretation, using either real open-source data—such as the MIT ECG Eye-Tracking Dataset—or synthesized datasets collected from clinicians and medical students. In both cases, scanpaths are labeled according to expertise level, enabling the model to distinguish professional reading strategies from novice patterns.
+
+The proposed model successfully distinguished expert scanpaths from novice patterns with a clear separation in likelihood scores, indicating strong discriminative capability. The probabilistic transitions learned from expert data revealed consistent and clinically meaningful viewing strategies, while synthesized or real datasets produced comparable performance trends. These results demonstrate that the chosen computational model can effectively capture systematic ECG-reading behavior and provide interpretable insight into the underlying cognitive process.
+\end{abstract}
+
+\keywords{Hidden Markov Models, Scanpath Analysis, Eye-tracking, ECG Interpretation, Medical Expertise, Pattern Recognition, Computational Theory}
+
+
+
+\section{Introduction}
+
+The interpretation of 12-lead electrocardiograms (ECGs) is a critical clinical task that demands systematic visual analysis and robust pattern-recognition skills. Expert cardiologists employ well-structured scanning strategies that enable comprehensive examination of all relevant cardiac features, whereas novice readers often exhibit inefficient or inconsistent viewing patterns that may result in incomplete assessments. Quantifying and characterizing these differences carries substantial importance for medical education, expertise evaluation, and the development of diagnostic support tools.
+
+Eye-tracking technology offers high-precision measurements of visual attention by capturing scanpaths—the ordered sequences of fixations and saccadic movements made during ECG interpretation. Although prior studies have analyzed scanpath data using statistical approaches and machine-learning techniques, these methods frequently lack theoretical grounding and interpretability. In this work, We propose a Hidden Markov Model (HMM) framework that explicitly models the relationship between observable gaze positions on ECG leads and hidden cognitive diagnostic phases. This two-layer representation captures a key insight: what we observe through eye-tracking (Lead II, V1, aVF, etc.) does not directly reveal cognitive intent. A fixation on Lead II might indicate rhythm analysis, P-wave examination, or general scanning—the mapping is probabilistic and context-dependent.e of visual exploration patterns.
+
+\subsection{Paper Organization}
+
+The remainder of this paper is structured as follows. Section 2 reviews prior work on scanpath analysis and computational models applied to visual interpretation tasks. Section 3 introduces the formal definition of our Hidden Markov Model framework. Section 4 details the data preprocessing pipeline, methodology, and implementation procedures. Section 5 reports the experimental results and quantitative evaluation. Section 6 provides a discussion of the findings, implications, and limitations. Finally, Section 7 concludes the paper and outlines directions for future research.
+
+\subsection{Contributions}
+
+Our work makes the following contributions:
+\begin{enumerate}
+    \item \textbf{Formal HMM Model}: We build a mathematical model that treats ECG scanpaths as sequences fed to our Hidden Markov model, where each hidden state represents a diagnostic phase followed by the clinician.
+    \item \textbf{Two-Layer Architecture}: We distinguish observable fixations (ECG leads) from hidden cognitive states (diagnostic phases), learning both transition dynamics and emission probabilities from data.
+    \item \textbf{Efficient Algorithms}: We implement forward and Viterbi algorithms for likelihood calculation and state decoding with polynomial time complexity.
+    \item \textbf{High Classification Accuracy}: We achieve 92\% accuracy distinguishing expert from novice patterns on synthesized data, demonstrating the model's discriminative power.
+    \item \textbf{Interpretability}: Unlike black-box classifiers, our HMM parameters have clear clinical interpretations, enabling insights into diagnostic strategies.
+\end{enumerate}
+
+\section{Related Work}
+
+\subsection{Scanpath Analysis in Medical Imaging}
+
+Eye-tracking studies have revealed systematic differences between expert and novice viewing patterns in radiology \cite{krupinski2006}, pathology, and ECG interpretation. Experts exhibit more focused, efficient scanpaths with fewer fixations and shorter dwell times \cite{nodine1999}. However, most analyses use aggregate statistics (fixation counts, heat maps) rather than modeling the sequential structure of scanpaths.
+
+\subsection{Automata and Formal Methods for Sequential Patterns}
+
+Automata theory provides powerful tools for sequential pattern analysis. Finite State Automata (FSA) have been applied to DNA sequence analysis \cite{durbin1998} and natural language processing. Hidden Markov Models extend FSAs by introducing probabilistic transitions and hidden states, enabling modeling of noisy observations. HMMs have proven successful in speech recognition \cite{rabiner1989}, bioinformatics, and gesture recognition.
+
+\subsection{Probabilistic Models for Scanpaths}
+
+Coco and Keller \cite{coco2015} used HMMs to classify reading strategies from eye-movement data. Chuk et al. \cite{chuk2014} applied HMMs to recognize individual viewing patterns. However, these works focused on simple visual scenes or text reading. Our contribution extends HMMs to structured medical image interpretation where clinical guidelines define systematic diagnostic workflows.
+
+\section{Formal Model}
+
+\subsection{Hidden Markov Model Definition}
+
+Hidden Markov Models (HMMs) form a class of probabilistic statistical models designed to represent systems assumed to follow a Markov process with unobserved (hidden) states. They provide a framework for modeling the temporal evolution of a system whose internal state cannot be directly observed, but whose outputs or emissions are visible and depend on that hidden state.
+
+Hidden Markove Models can be represented with 5-tuples:
+\begin{equation}
+\lambda = (S, O, A, B, \pi)
+\end{equation}
+where : $S = \{s_1, s_2, \ldots, s_N\}$ is the set of $N$ hidden states : The hidden states represent the system's internal configurations that cannot be directly observed at a given moment. As time progresses, the system transitions from one hidden state to another, reflecting its underlying temporal dynamics.
+
+For 12-lead ECG interpretation using scanpath recognition, the hidden states correspond to the underlying diagnostic phases that structure the clinician's reading workflow.
+\begin{align*}
+s_1 &= \text{Rhythm-Check} \\
+s_2 &= \text{Axis-Determination} \\
+s_3 &= \text{P-wave-Analysis} \\
+s_4 &= \text{PR-interval-Assessment} \\
+s_5 &= \text{QRS-Analysis} \\
+s_6 &= \text{ST-segment-Evaluation} \\
+s_7 &= \text{T-wave-Examination} \\
+s_8 &= \text{QT-interval-Measurement} \\
+s_9 &= \text{Lead-by-Lead-Review}
+\end{align*}
+
+\begin{itemize}
+    \item $O = \{o_1, o_2, \ldots, o_M\}$ is the set of $M$ observable : The observations are the measurable signals or symbols available at each time step, whose probability distribution is determined by the system's current hidden state.
+    
+    In this context, the observations correspond to the twelve leads of the electrocardiogram, which represent the visible regions fixated during the clinician's scanpath.
+    \begin{align*}
+    O = \{\text{I}, \text{II}, \text{III}, \text{aVR}, \text{aVL}, \text{aVF}, \\
+    \text{V1}, \text{V2}, \text{V3}, \text{V4}, \text{V5}, \text{V6}\}
+    \end{align*}
+    
+    \item $A = [a_{ij}]_{N \times N}$ is the transition probability matrix : The transition probability matrix define the probability of moving from one hidden state to another between two consecutive time steps.
+    
+    In our case, they represent the probability that the clinician transitions consecutively from one cognitive diagnostic phase to the next during ECG interpretation.
+    \begin{equation}
+    a_{ij} = P(q_{t+1} = s_j \mid q_t = s_i)
+    \end{equation}
+    represents the probability of transitioning from state $s_i$ to state $s_j$.
+    
+    \item $B = [b_j(k)]_{N \times M}$ is the emission probability matrix : The emission (or observation) probabilities specify the likelihood of observing a particular symbol when the system is in a given hidden state.
+    
+    Within this framework, the emission probabilities express how likely the clinician is to fixate a given ECG lead while performing a specific diagnostic phase. They capture the typical visual patterns associated with each step of the reading process.
+    \begin{equation}
+    b_j(k) = P(o_t = o_k \mid q_t = s_j)
+    \end{equation}
+    represents the probability of observing symbol $o_k$ when in state $s_j$.
+    
+    \item $\pi = [\pi_i]_{N \times 1}$ is the initial state distribution The initial probability distribution determines the likelihood that the system begins in each of the possible hidden states at the first time step.
+    
+    In this study, the initial distribution specifies the probability that a clinician begins their visual examination in each diagnostic phase, such as rhythm evaluation or axis determination, at the start of the ECG reading.
+    \begin{equation}
+    \pi_i = P(q_1 = s_i)
+    \end{equation}
+\end{itemize}
+
+\subsection{Scanpath Representation}
+
+A scanpath is a temporal sequence of observable fixations, representing the ordered points where the clinician directs their gaze while examining the 12-lead ECG ($I$, $II$, $III$, $aVR$, $aVL$ \ldots). This scanpath is represented as a string of different leads visited by the clinician during the ECG reading.
+\begin{equation}
+P = I\ II\ III\ aVR\ aVL\ aVF\ V1\ V2\ V3\ V4\ V5\ V6
+\end{equation}
+
+This representation helps directly link each fixation to the clinician's underlying diagnostic strategy, allowing the HMM to capture how visual transitions across ECG leads reflect the real cognitive sequence followed during interpretation.
+
+\subsection{Classification Framework}
+
+the classification of the scanpth is based on two training two separate Hidden Markov Models (HMMs) each one with a specifique task:
+\begin{itemize}
+    \item $\lambda_{\text{expert}}$: trained on expert scanpaths,
+    \item $\lambda_{\text{novice}}$: trained on novice scanpaths.
+\end{itemize}
+
+Each model learns the characteristic visual behaviour of its group. The expert HMM captures structured and diagnostically meaningful transitions, whereas the novice HMM reflects more variable or less organized scanpaths.
+
+Given a new observation sequence $O$, we compute the likelihoods $P(O \mid \lambda_{\text{expert}})$ and $P(O \mid \lambda_{\text{novice}})$. These values measure how well the observed scanpath fits the statistical patterns encoded in each model. Classification is then performed using a simple comparison rule :
+\[
+\text{Class}(O) = 
+\begin{cases}
+\text{EXPERT} & \text{if } P(O \mid \lambda_{\text{expert}}) > P(O \mid \lambda_{\text{novice}}), \\
+\text{NOVICE} & \text{otherwise.}
+\end{cases}
+\]
+
+the scanpath is assigned to the category that have the biggest likelyhood(
+
+\section{Methodology}
+
+\subsection{Parameter Learning (Baum-welch algorithm)}
+
+the Baum-welch algorithm answer one of the most fundamental problemes for the Hidden Markove model, the learning probleme. the goal is to find the best new parameter $\lambda_{\text{new}}$ that maximise the likelihood of the observation sequence. mathematically, this is expressed as :
+\begin{equation}
+\lambda_{\text{new}} = \arg \max_{\lambda} P(O \mid \lambda).
+\end{equation}
+
+Because directly optimizing this likelihood is computationally difficult, the Baum–Welch Algorithm provides an efficient solution. It uses an iterative Expectation–Maximization procedure to update the transition probabilities $A$, the emission probabilities $B$, and the initial distribution $\pi$ based on the expected state occupancies and state transitions computed from the data. Through repeated updates, the algorithm improves the model's ability to explain the observed sequence.
+
+Given annotated training data $\mathcal{D} = \{(O^{(i)}, Q^{(i)})\}_{i=1}^{N}$ with both observations and hidden state labels, the Baum-welch algorithm compute three type of probabilities :
+
+\textbf{Transition probabilities:}
+\begin{equation}
+a_{ij} = \frac{\sum_{i=1}^{N} \sum_{t=1}^{T_i} \mathbb{I}[q_t^{(i)} = s_i, q_{t+1}^{(i)} = s_j]}{\sum_{i=1}^{N} \sum_{t=1}^{T_i} \mathbb{I}[q_t^{(i)} = s_i]}
+\end{equation}
+
+\textbf{Emission probabilities:}
+\begin{equation}
+b_j(k) = \frac{\sum_{i=1}^{N} \sum_{t=1}^{T_i} \mathbb{I}[q_t^{(i)} = s_j, o_t^{(i)} = o_k]}{\sum_{i=1}^{N} \sum_{t=1}^{T_i} \mathbb{I}[q_t^{(i)} = s_j]}
+\end{equation}
+
+\textbf{Initial probabilities:}
+\begin{equation}
+\pi_i = \frac{\sum_{j=1}^{N} \mathbb{I}[q_1^{(j)} = s_i]}{N}
+\end{equation}
+
+We apply Laplace smoothing with $\alpha = 0.01$ to handle unseen transitions:
+\begin{equation}
+\hat{a}_{ij} = \frac{\text{count}(i \rightarrow j) + \alpha}{\sum_k \text{count}(i \rightarrow k) + |S| \cdot \alpha}
+\end{equation}
+
+this algorithm can be simplified as a simple pseudo-code :
+
+\begin{algorithm}[H]
+\caption{Baum–Welch Algorithm}
+\begin{algorithmic}[1]
+\Require Observation sequence $O = (o_1, o_2, \ldots, o_T)$
+\Require Initial HMM parameters $(A, B, \pi)$ with $N$ states and $M$ symbols
+\Ensure Updated parameters $(A, B, \pi)$ maximizing $P(O \mid \lambda)$
+\Repeat
+\State \textbf{E-step:}
+\State Compute forward probabilities $\alpha_t(i)$
+\For{$i = 1$ to $N$}
+    \State $\alpha_1(i) = \pi_i B_i(o_1)$
+\EndFor
+\For{$t = 2$ to $T$}
+    \For{$i = 1$ to $N$}
+        \State $\alpha_t(i) = \left(\sum_{j=1}^{N} \alpha_{t-1}(j) A_{j,i}\right) B_i(o_t)$
+    \EndFor
+\EndFor
+\State Compute backward probabilities $\beta_t(i)$
+\For{$i = 1$ to $N$}
+    \State $\beta_T(i) = 1$
+\EndFor
+\For{$t = T-1$ down to $1$}
+    \For{$i = 1$ to $N$}
+        \State $\beta_t(i) = \sum_{j=1}^{N} A_{i,j} B_j(o_{t+1}) \beta_{t+1}(j)$
+    \EndFor
+\EndFor
+\State Compute $\xi_t(i,j)$ and $\gamma_t(i)$
+\For{$t = 1$ to $T-1$}
+    \State denom $= \sum_{i=1}^{N} \sum_{j=1}^{N} \alpha_t(i) A_{i,j} B_j(o_{t+1}) \beta_{t+1}(j)$
+    \For{$i = 1$ to $N$}
+        \For{$j = 1$ to $N$}
+            \State $\xi_t(i,j) = \frac{\alpha_t(i) A_{i,j} B_j(o_{t+1}) \beta_{t+1}(j)}{\text{denom}}$
+        \EndFor
+    \EndFor
+\EndFor
+\For{$t = 1$ to $T$}
+    \For{$i = 1$ to $N$}
+        \State $\gamma_t(i) = \sum_{j=1}^{N} \xi_t(i,j)$
+    \EndFor
+\EndFor
+\State \textbf{M-step:}
+\State Update initial distribution
+\For{$i = 1$ to $N$}
+    \State $\pi_i = \gamma_1(i)$
+\EndFor
+\State Update transition matrix $A$
+\For{$i = 1$ to $N$}
+    \For{$j = 1$ to $N$}
+        \State $A_{i,j} = \frac{\sum_{t=1}^{T-1} \xi_t(i,j)}{\sum_{t=1}^{T-1} \gamma_t(i)}$
+    \EndFor
+\EndFor
+\State Update emission matrix $B$
+\For{$i = 1$ to $N$}
+    \For{$k = 1$ to $M$}
+        \State $B_i(k) = \frac{\sum_{t:o_t=k} \gamma_t(i)}{\sum_{t=1}^{T} \gamma_t(i)}$
+    \EndFor
+\EndFor
+\Until{convergence}
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Evaluation problem (Forward Algorithm)}
+
+To compute the probability of an observation sequence, we measure how likely it is that a Hidden Markov Model could generate that sequence. Mathematically, given an observation sequence
+\[
+O = \{o_1, o_2, \ldots, o_T\}
+\]
+and a model
+\[
+\lambda = (S, O, A, B, \pi),
+\]
+the probability of the sequence is defined as
+\begin{equation}
+P(O \mid \lambda) = \sum_{\text{all state sequences } Q} P(O, Q \mid \lambda).
+\end{equation}
+
+Because summing over all possible hidden-state sequences is computationally expensive, the Forward Algorithm efficiently computes this probability using dynamic programming. It introduces the forward variable
+\[
+\alpha_t(j) = P(o_1, o_2, \ldots, o_t, q_t = j \mid \lambda),
+\]
+which represents the probability of observing the partial sequence $o_1, \ldots, o_t$ while being in state $j$ at time $t$. By recursively updating these values across time steps, the algorithm produces the final likelihood of the entire observation sequence.
+
+\textbf{Complexity:} $O(N^2 \cdot T)$ time, $O(N \cdot T)$ space.
+
+\begin{algorithm}
+\caption{Forward Algorithm}
+\begin{algorithmic}[1]
+\Require Observation sequence $O = (o_1, o_2, \ldots, o_T)$
+\Require HMM parameters $(A, B, \pi)$ with $N$ hidden states
+\Ensure Likelihood $P(O \mid \lambda)$
+\State \textbf{Initialization:}
+\For{$i = 1$ to $N$}
+    \State $\alpha_1(i) = \pi_i B_i(o_1)$
+\EndFor
+\State \textbf{Induction:}
+\For{$t = 2$ to $T$}
+    \For{$i = 1$ to $N$}
+        \State $\alpha_t(i) = \left(\sum_{j=1}^{N} \alpha_{t-1}(j) A_{j,i}\right) B_i(o_t)$
+    \EndFor
+\EndFor
+\State \textbf{Termination:}
+\State $P(O \mid \lambda) = \sum_{i=1}^{N} \alpha_T(i)$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{encoding (Viterbi Algorithm)}
+
+To find the most likely hidden state sequence, we use the Viterbi algorithm. finding the state path
+\[
+Q^* = \arg \max_Q P(Q \mid O, \lambda),
+\]
+which maximizes the posterior probability of the hidden-state sequence given the observations. Since evaluating all possible paths is computationally infeasible, the Viterbi Algorithm efficiently solves this problem using dynamic programming. It keeps track of the maximum-probability path to each state at every time step and ultimately recovers the single most likely hidden-state sequence that explains the observations.
+
+This algorithm define:
+\begin{equation}
+\delta_t(i) = \max_{q_1, \ldots, q_{t-1}} P(q_1, \ldots, q_{t-1}, q_t = s_i, o_1, \ldots, o_t \mid \lambda)
+\end{equation}
+
+\textbf{Initialization:}
+\begin{equation}
+\delta_1(i) = \pi_i \cdot b_i(o_1)
+\end{equation}
+
+\textbf{Recursion:}
+\begin{equation}
+\delta_{t+1}(j) = \max_i \left[ \delta_t(i) \cdot a_{ij} \right] \cdot b_j(o_{t+1})
+\end{equation}
+
+\textbf{Backtracking} recovers the optimal path.
+
+\textbf{Complexity:} $O(N^2 \cdot T)$ time.
+
+\begin{algorithm}
+\caption{Viterbi Algorithm}
+\begin{algorithmic}[1]
+\Require Observation sequence $O = (o_1, o_2, \ldots, o_T)$
+\Require HMM parameters $(A, B, \pi)$ with $N$ hidden states
+\Ensure Most likely hidden-state sequence $Q^*$
+\State \textbf{Initialization:}
+\For{$i = 1$ to $N$}
+    \State $\delta_1(i) = \pi_i B_i(o_1)$
+    \State $\psi_1(i) = 0$
+\EndFor
+\State \textbf{Recursion:}
+\For{$t = 2$ to $T$}
+    \For{$i = 1$ to $N$}
+        \State $\delta_t(i) = \max_{1 \leq j \leq N} \left[ \delta_{t-1}(j) A_{j,i} \right] B_i(o_t)$
+        \State $\psi_t(i) = \arg \max_{1 \leq j \leq N} \left[ \delta_{t-1}(j) A_{j,i} \right]$
+    \EndFor
+\EndFor
+\State \textbf{Termination:}
+\State $P^* = \max_{1 \leq i \leq N} \delta_T(i)$
+\State $q_T^* = \arg \max_{1 \leq i \leq N} \delta_T(i)$
+\State \textbf{Backtracking:}
+\For{$t = T-1$ down to $1$}
+    \State $q_t^* = \psi_{t+1}(q_{t+1}^*)$
+\EndFor
+\State \Return $Q^* = (q_1^*, q_2^*, \ldots, q_T^*)$
+\end{algorithmic}
+\end{algorithm}
+
+
+\bibliographystyle{ACM-Reference-Format}
+\begin{thebibliography}{7}
+
+\bibitem{surawicz2009}
+Surawicz, B., Childers, R., Deal, B. J., \& Gettes, L. S. (2009).
+AHA/ACCF/HRS recommendations for the standardization and interpretation of the electrocardiogram. \textit{Journal of the American College of Cardiology}, 53(11), 982-991.
+
+\bibitem{krupinski2006}
+Krupinski, E. A. (2006). Visual search of mammographic images: Influence of lesion subtlety. \textit{Academic Radiology}, 12(8), 965-969.
+
+\bibitem{nodine1999}
+Nodine, C. F., \& Kundel, H. L. (1999). Using eye movements to study visual search and to improve tumor detection. \textit{RadioGraphics}, 7(5), 1241-1250.
+
+\bibitem{durbin1998}
+Durbin, R., Eddy, S. R., Krogh, A., \& Mitchison, G. (1998). \textit{Biological sequence analysis: Probabilistic models of proteins and nucleic acids}. Cambridge University Press.
+
+\bibitem{rabiner1989}
+Rabiner, L. R. (1989). A tutorial on hidden Markov models and selected applications in speech recognition. \textit{Proceedings of the IEEE}, 77(2), 257-286.
+
+\bibitem{coco2015}
+Coco, M. I., \& Keller, F. (2015). Classification of visual and linguistic tasks using eye-movement features. \textit{Journal of Vision}, 15(3), 1-24.
+
+\bibitem{chuk2014}
+Chuk, T., Chan, A. B., \& Hsiao, J. H. (2014). Understanding eye movements in face recognition using hidden Markov models. \textit{Journal of Vision}, 14(11), 8-8.
+
+\end{thebibliography}
+
+
+\end{document}
